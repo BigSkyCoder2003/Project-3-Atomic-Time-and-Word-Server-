@@ -19,11 +19,25 @@ def get_next_word_packet(s):
     Returns None if there are no more words, i.e. the server has hung
     up.
     """
-
     global packet_buffer
 
-    # TODO -- Write me!
+    while len(packet_buffer) < WORD_LEN_SIZE:
+        data = s.recv(4096)
+        if not data:
+            return None
+        packet_buffer += data
 
+    word_len = int.from_bytes(packet_buffer[:WORD_LEN_SIZE], byteorder='big')
+
+    while len(packet_buffer) < word_len:
+        data = s.recv(4096)
+        if not data:
+            return None
+        packet_buffer += data
+
+    word_packet = packet_buffer[:word_len+WORD_LEN_SIZE]
+    packet_buffer = packet_buffer[(word_len+WORD_LEN_SIZE):]
+    return word_packet
 
 def extract_word(word_packet):
     """
@@ -34,8 +48,7 @@ def extract_word(word_packet):
 
     Returns the word decoded as a string.
     """
-
-    # TODO -- Write me!
+    return word_packet[WORD_LEN_SIZE:].decode('utf-8')
 
 # Do not modify:
 
@@ -51,6 +64,7 @@ def main(argv):
     s.connect((host, port))
 
     print("Getting words:")
+    print("stream:", packet_buffer)
 
     while True:
         word_packet = get_next_word_packet(s)
